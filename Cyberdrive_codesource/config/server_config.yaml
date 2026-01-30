@@ -1,0 +1,36 @@
+# RC Car Server Configuration
+
+server:
+  name: "RC Car Control Server"
+  version: "1.0.0-alpha"
+  debug: true
+
+# Serial configuration
+serial:
+  auto_detect: true
+  scan_interval: 5  # seconds
+  baudrates: [9600, 115200]  # Try these baudrates
+  timeout: 1.0  # seconds
+
+# WiFi configuration
+wifi:
+  enabled: true
+  default_port: 8888
+  timeout: 5.0  # seconds
+  reconnect_interval: 10  # seconds
+
+# Telemetry
+telemetry:
+  update_interval: 0.2  # seconds (5 Hz)
+  
+# Logging
+logging:
+  level: "DEBUG"  # DEBUG, INFO, WARNING, ERROR
+  console: true
+  file: false
+  file_path: "logs/server.log"
+
+# UI (for future phases)
+ui:
+  theme: "dark"
+  auto_connect_last_vehicle: true
