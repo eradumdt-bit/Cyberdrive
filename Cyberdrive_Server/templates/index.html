@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberDrive - Control Dashboard</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00ff88;
+            --danger: #ff4444;
+            --warning: #ffaa00;
+            --bg-dark: #0a0e27;
+            --bg-card: rgba(255, 255, 255, 0.08);
+            --border: rgba(0, 255, 136, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-bottom: 2px solid var(--primary);
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 15px;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+            letter-spacing: 2px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--danger);
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online {
+            background: var(--primary);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.95); }
+        }
+
+        /* Container */
+        .container {
+            max-width: 1600px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 255, 136, 0.15);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-size: 1.6em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Telemetry */
+        .telemetry-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .telem-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s;
+        }
+
+        .telem-item:hover {
+            background: rgba(0, 0, 0, 0.5);
+            border-left-width: 6px;
+        }
+
+        .telem-label {
+            font-weight: 600;
+            color: #aaa;
+            font-size: 0.95em;
+        }
+
+        .telem-value {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .telem-value.warning {
+            color: var(--warning);
+        }
+
+        .telem-value.danger {
+            color: var(--danger);
+        }
+
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left stop right"
+                ". down .";
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, #00cc6a 100%);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-weight: 700;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+            user-select: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #cc0000 100%);
+            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);
+            grid-area: stop;
+        }
+
+        .btn:nth-child(1) { grid-area: up; }
+        .btn:nth-child(3) { grid-area: left; }
+        .btn:nth-child(4) { grid-area: right; }
+        .btn:nth-child(5) { grid-area: down; }
+
+        /* Camera */
+        .camera-feed {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 1.2em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .camera-feed img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .camera-feed::before {
+            content: '📷';
+            position: absolute;
+            font-size: 4em;
+            opacity: 0.2;
+        }
+
+        /* Logs */
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        .log-entry {
+            margin: 6px 0;
+            padding: 6px;
+            border-left: 3px solid var(--primary);
+            padding-left: 12px;
+            line-height: 1.5;
+        }
+
+        .log-entry.error {
+            border-left-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .log-entry.warning {
+            border-left-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .log-entry .timestamp {
+            color: var(--primary);
+            margin-right: 10px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.9em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .status-bar {
+                gap: 15px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .card:nth-child(1) { animation-delay: 0s; }
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+        .card:nth-child(4) { animation-delay: 0.3s; }
+        .card:nth-child(5) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚗 CYBERDRIVE</h1>
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="serverStatus"></div>
+                <span><strong>Serveur</strong></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="usbStatus"></div>
+                <span><strong>Client USB</strong></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="vehicleStatus"></div>
+                <span><strong>Véhicule</strong></span>
+            </div>
+            <div class="status-item">
+                <span id="clientCount"><strong>0</strong> clients</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="grid">
+            <!-- Télémétrie -->
+            <div class="card">
+                <h2>📊 Télémétrie</h2>
+                <div class="telemetry-grid">
+                    <div class="telem-item">
+                        <span class="telem-label">Direction</span>
+                        <span class="telem-value" id="direction">1500 µs</span>
+                    </div>
+                    <div class="telem-item">
+                        <span class="telem-label">Accélération</span>
+                        <span class="telem-value" id="throttle">1500 µs</span>
+                    </div>
+                    <div class="telem-item">
+                        <span class="telem-label">Distance</span>
+                        <span class="telem-value" id="distance">-- cm</span>
+                    </div>
+                    <div class="telem-item">
+                        <span class="telem-label">Batterie</span>
+                        <span class="telem-value" id="battery">0.0 V</span>
+                    </div>
+                    <div class="telem-item">
+                        <span class="telem-label">RC Signal</span>
+                        <span class="telem-value" id="rxActive">Inactif</span>
+                    </div>
+                    <div class="telem-item">
+                        <span class="telem-label">Mode</span>
+                        <span class="telem-value" id="mode">Unknown</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contrôles -->
+            <div class="card">
+                <h2>🎮 Contrôles Manuels</h2>
+                <div class="controls">
+                    <button class="btn" onclick="sendQuickCommand('forward')">⬆️ AVANT</button>
+                    <button class="btn danger" onclick="sendQuickCommand('stop')">🛑 STOP</button>
+                    <button class="btn" onclick="sendQuickCommand('left')">⬅️ GAUCHE</button>
+                    <button class="btn" onclick="sendQuickCommand('right')">➡️ DROITE</button>
+                    <button class="btn" onclick="sendQuickCommand('backward')">⬇️ ARRIÈRE</button>
+                </div>
+            </div>
+
+            <!-- Caméra -->
+            <div class="card">
+                <h2>📷 Flux Caméra</h2>
+                <div class="camera-feed" id="cameraFeed">
+                    <span>Caméra non disponible</span>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="card">
+                <h2>📈 Statistiques</h2>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span class="stat-value" id="cmdsSent">0</span>
+                        <span class="stat-label">Commandes</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-value" id="telemReceived">0</span>
+                        <span class="stat-label">Télémétrie</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-value" id="uptime">0s</span>
+                        <span class="stat-label">Uptime</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs -->
+            <div class="card">
+                <h2>📝 Journal</h2>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">
+                        <span class="timestamp">[--:--:--]</span>
+                        <span>En attente de connexion...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p><strong>CyberDrive v0.1 Alpha</strong> | Open Source Project</p>
+        <p>Dernière mise à jour: <span id="lastUpdate">--</span></p>
+    </div>
+
+    <script>
+        // ==================== WebSocket ====================
+        
+        const socket = io();
+        
+        let connected = false;
+        let usbClientOnline = false;
+        let vehicleOnline = false;
+        
+        // ==================== Events ====================
+        
+        socket.on('connect', () => {
+            connected = true;
+            updateStatus('serverStatus', true);
+            addLog('✓ Connecté au serveur');
+            
+            // S'identifier comme client web
+            socket.emit('web_client_hello');
+        });
+        
+        socket.on('disconnect', () => {
+            connected = false;
+            updateStatus('serverStatus', false);
+            updateStatus('usbStatus', false);
+            updateStatus('vehicleStatus', false);
+            addLog('✗ Déconnecté du serveur', 'error');
+        });
+        
+        socket.on('server_status', (data) => {
+            usbClientOnline = data.usb_client_online;
+            vehicleOnline = data.vehicle_online;
+            
+            updateStatus('usbStatus', usbClientOnline);
+            updateStatus('vehicleStatus', vehicleOnline);
+        });
+        
+        socket.on('usb_client_connected', (data) => {
+            usbClientOnline = true;
+            updateStatus('usbStatus', true);
+            addLog(`✓ Client USB connecté (${data.port})`);
+        });
+        
+        socket.on('usb_client_disconnected', () => {
+            usbClientOnline = false;
+            vehicleOnline = false;
+            updateStatus('usbStatus', false);
+            updateStatus('vehicleStatus', false);
+            addLog('✗ Client USB déconnecté', 'warning');
+        });
+        
+        socket.on('vehicle_status', (data) => {
+            vehicleOnline = data.connected;
+            updateStatus('vehicleStatus', vehicleOnline);
+            
+            if (vehicleOnline) {
+                addLog(`✓ Véhicule connecté: ${data.vehicle_id}`);
+            } else {
+                addLog('✗ Véhicule déconnecté', 'warning');
+            }
+        });
+        
+        socket.on('telemetry_update', (data) => {
+            updateTelemetry(data);
+        });
+        
+        socket.on('camera_update', (data) => {
+            if (data.frame) {
+                document.getElementById('cameraFeed').innerHTML = 
+                    `<img src="data:image/jpeg;base64,${data.frame}" alt="Camera">`;
+            }
+        });
+        
+        socket.on('command_sent', (data) => {
+            // OK
+        });
+        
+        socket.on('error', (data) => {
+            addLog(`✗ Erreur: ${data.message}`, 'error');
+            alert(`Erreur: ${data.message}`);
+        });
+        
+        socket.on('pong', (data) => {
+            // Keepalive OK
+        });
+        
+        // ==================== Fonctions ====================
+        
+        function updateStatus(elementId, online) {
+            const dot = document.getElementById(elementId);
+            if (online) {
+                dot.classList.add('online');
+            } else {
+                dot.classList.remove('online');
+            }
+        }
+        
+        function updateTelemetry(data) {
+            if (data.direction !== undefined) {
+                document.getElementById('direction').textContent = data.direction + ' µs';
+            }
+            if (data.throttle !== undefined) {
+                document.getElementById('throttle').textContent = data.throttle + ' µs';
+            }
+            if (data.distance_cm !== undefined) {
+                const dist = document.getElementById('distance');
+                dist.textContent = data.distance_cm >= 0 ? data.distance_cm + ' cm' : '-- cm';
+                
+                // Colorier si obstacle proche
+                if (data.distance_cm >= 0 && data.distance_cm < 30) {
+                    dist.classList.add('warning');
+                } else if (data.distance_cm >= 0 && data.distance_cm < 15) {
+                    dist.classList.add('danger');
+                } else {
+                    dist.classList.remove('warning', 'danger');
+                }
+            }
+            if (data.battery_voltage !== undefined) {
+                const batt = document.getElementById('battery');
+                batt.textContent = data.battery_voltage.toFixed(1) + ' V';
+                
+                // Colorier si batterie faible
+                if (data.battery_voltage < 10.5) {
+                    batt.classList.add('danger');
+                } else if (data.battery_voltage < 11.0) {
+                    batt.classList.add('warning');
+                } else {
+                    batt.classList.remove('warning', 'danger');
+                }
+            }
+            if (data.rx_active !== undefined) {
+                document.getElementById('rxActive').textContent = data.rx_active ? '✓ Actif' : '✗ Inactif';
+            }
+            if (data.mode !== undefined) {
+                document.getElementById('mode').textContent = data.mode.toUpperCase();
+            }
+            
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('fr-FR');
+        }
+        
+        function sendQuickCommand(cmd) {
+            if (!connected) {
+                alert('Non connecté au serveur!');
+                return;
+            }
+            
+            if (!usbClientOnline) {
+                alert('Client USB non connecté!');
+                return;
+            }
+            
+            if (!vehicleOnline) {
+                alert('Véhicule non connecté!');
+                return;
+            }
+            
+            socket.emit('quick_command', { command: cmd });
+            addLog(`→ Commande: ${cmd.toUpperCase()}`);
+        }
+        
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('logContainer');
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('fr-FR');
+            
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span>
+                <span>${message}</span>
+            `;
+            
+            container.insertBefore(entry, container.firstChild);
+            
+            // Limiter à 100 entrées
+            while (container.children.length > 100) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        // ==================== Polling Stats ====================
+        
+        async function updateStats() {
+            if (!connected) return;
+            
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                document.getElementById('cmdsSent').textContent = data.commands_sent;
+                document.getElementById('telemReceived').textContent = data.telemetry_received;
+                document.getElementById('uptime').textContent = formatUptime(data.uptime_seconds);
+                
+            } catch (e) {
+                // Ignore
+            }
+        }
+        
+        function formatUptime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
+        }
+        
+        // ==================== Init ====================
+        
+        addLog('Interface chargée');
+        
+        // Polling stats toutes les 5s
+        setInterval(updateStats, 5000);
+        updateStats();
+        
+        // Ping toutes les 30s
+        setInterval(() => {
+            if (connected) {
+                socket.emit('ping');
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
