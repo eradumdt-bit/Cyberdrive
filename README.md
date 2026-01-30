@@ -12,16 +12,6 @@ The project is designed to scale toward autonomous driving, telemetry analysis, 
 
 # 🏗️ Architecture
 
-[ Arduino Mega ]
-        │
-        │  (Serial / Custom Protocol)
-        ▼
-     [ ESP32 ]
-        │
-        │  (WiFi / Network)
-        ▼
-[ Windows Server / UI ]
-
 Arduino Mega: Vehicle logic, sensors, low-level control
 
 ESP32: Communication bridge and network relay
