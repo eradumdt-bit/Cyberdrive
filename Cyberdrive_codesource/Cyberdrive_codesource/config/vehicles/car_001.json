@@ -1,0 +1,50 @@
+{
+  "id": "rc_car_001",
+  "name": "RC Car Proto v1",
+  "type": "rc_car",
+  "description": "Prototype RC car with Arduino Mega + ESP32",
+  
+  "connection": {
+    "preferred_mode": "serial",
+    "serial": {
+      "port": "AUTO",
+      "baudrate": 115200,
+      "description": "ESP32 via USB"
+    },
+    "wifi": {
+      "ip": "192.168.1.50",
+      "port": 8888,
+      "enabled": false
+    }
+  },
+  
+  "capabilities": {
+    "max_speed_kmh": 30,
+    "has_camera_onboard": false,
+    "sensors": [
+      "ultrasonic_hcsr04",
+      "mpu6500",
+      "battery_voltage"
+    ],
+    "actuators": [
+      "servo_steering",
+      "esc_throttle",
+      "led_indicators"
+    ]
+  },
+  
+  "protocol": {
+    "version": "esp32_v1",
+    "command_format": "CMD:MOVE:{dir}:{thr}\\n",
+    "telemetry_format": "TELEM:{dir}:{thr}:{dist}:{batt}:{rx}\\n"
+  },
+  
+  "limits": {
+    "dir_min": 1000,
+    "dir_max": 2000,
+    "dir_center": 1500,
+    "thr_min": 1000,
+    "thr_max": 2000,
+    "thr_neutral": 1500
+  }
+}
