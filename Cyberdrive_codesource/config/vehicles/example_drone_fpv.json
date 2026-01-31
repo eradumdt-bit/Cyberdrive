@@ -1,0 +1,55 @@
+{
+  "id": "example_drone_fpv",
+  "name": "FPV Racing Drone",
+  "type": "drone",
+  "description": "High-speed FPV racing drone with WiFi connection",
+  
+  "connection": {
+    "preferred_mode": "wifi",
+    "serial": {
+      "port": "AUTO",
+      "baudrate": 115200,
+      "description": "USB Backup Connection"
+    },
+    "wifi": {
+      "ip": "192.168.4.1",
+      "port": 8888,
+      "enabled": true
+    }
+  },
+  
+  "capabilities": {
+    "max_speed_kmh": 80,
+    "has_camera_onboard": true,
+    "sensors": [
+      "mpu6050",
+      "barometer_bmp280",
+      "gps_neo6m",
+      "battery_voltage",
+      "rssi"
+    ],
+    "actuators": [
+      "esc_motor_1",
+      "esc_motor_2",
+      "esc_motor_3",
+      "esc_motor_4",
+      "camera_gimbal",
+      "led_status"
+    ]
+  },
+  
+  "protocol": {
+    "version": "esp32_drone_v1",
+    "command_format": "DRONE:FLY:{thr}:{dir}:{yaw}:{pitch}\n",
+    "telemetry_format": "TELEM:{alt}:{lat}:{lon}:{batt}:{rssi}\n"
+  },
+  
+  "limits": {
+    "dir_min": 1000,
+    "dir_max": 2000,
+    "dir_center": 1500,
+    "thr_min": 1000,
+    "thr_max": 2000,
+    "thr_neutral": 1000
+  }
+}
